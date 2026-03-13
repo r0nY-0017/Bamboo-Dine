@@ -55,8 +55,8 @@ bamboo-dine/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/r0nY-0017/Bamboo Dine.git
-cd Bamboo Dine
+git clone https://github.com/r0nY-0017/Bamboo-Dine.git
+cd Bamboo-Dine
 ```
 
 ### 2. Install dependencies
