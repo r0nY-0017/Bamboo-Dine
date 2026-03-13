@@ -1,6 +1,11 @@
 # 🎋 Bamboo Dine — Restaurant Table Booking System
 
-A full-stack restaurant booking system built with **FastAPI** + **pure HTML/CSS/JS**, powered by an AI chatbot (বাঁশু) and automated workflows via **n8n** → **Google Sheets**.
+A full-stack restaurant booking system built with **FastAPI** + **pure HTML/CSS/JS**, powered by an AI chatbot (Bamboo AI) and automated workflows via **n8n** → **Google Sheets**.
+<img width="803" height="722" alt="Screenshot 2026-03-14 012629" src="https://github.com/user-attachments/assets/7775625f-e24e-497a-a6cf-49072e8d04c3" />
+<img width="1479" height="747" alt="Screenshot 2026-03-14 012906" src="https://github.com/user-attachments/assets/bed85b66-985b-4a57-9b88-647f35c0526c" />
+
+
+
 
 ---
 
@@ -41,7 +46,7 @@ bamboo-dine/
 │   └── admin.html           # Admin dashboard
 ├── static/                  # Static assets
 └── n8n/
-    └── workflow.json        # n8n automation workflow (4 webhooks)
+    └── Bamboo Dine.json        # n8n automation workflow (5 webhooks)
 ```
 
 ---
@@ -50,8 +55,8 @@ bamboo-dine/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/r0nY-0017/n8n-Workflows.git
-cd n8n-Workflows
+git clone https://github.com/r0nY-0017/Bamboo Dine.git
+cd Bamboo Dine
 ```
 
 ### 2. Install dependencies
