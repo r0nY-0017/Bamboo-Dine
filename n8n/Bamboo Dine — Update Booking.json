@@ -1,0 +1,1407 @@
+{
+  "name": "Bamboo Dine — Update Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"success\": true}",
+        "options": {}
+      },
+      "id": "5f57cabc-8277-411d-8df4-f9cfe1f181e3",
+      "name": "Respond Booking OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 348085080,
+          "mode": "list",
+          "cachedResultName": "Availability",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=348085080"
+        },
+        "options": {}
+      },
+      "id": "3d5501f0-0650-41e2-9bd3-7e26c65d47a9",
+      "name": "Read Slots from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1248,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ওয়েবহুক থেকে body থেকে ডাটা নিন\nconst { date, time } = $('Check Availability Webhook').first().json.body;\nconst rows = $input.all();\n\n// Slot কলাম দিয়ে খুঁজি\nconst slot = rows.find(r => r.json.Slot === time);\n\nif (!slot) {\n  return [{\n    json: {\n      booked_count: 0,\n      available: true,\n      free_count: 6,\n      date, time,\n      Slot: time,\n      Booked: 0,\n      Free: 6,\n      free_tables: ['T-1','T-2','T-3','T-4','T-5','T-6'],\n      booked_tables: []\n    }\n  }];\n}\n\nconst data = slot.json;\nconst ALL_TABLES = ['T-1','T-2','T-3','T-4','T-5','T-6'];\nconst bookedTables = ALL_TABLES.filter(t => data[t] === 1);\nconst freeTables = ALL_TABLES.filter(t => data[t] === 0);\n\nreturn [{\n  json: {\n    booked_count: data.Booked || bookedTables.length,\n    available: (data.Booked || bookedTables.length) < 6,\n    free_count: data.Free || freeTables.length,\n    booked_tables: bookedTables,\n    free_tables: freeTables,\n    date, time,\n    Slot: data.Slot,\n    Booked: data.Booked,\n    Free: data.Free,\n    row_number: data.row_number\n  }\n}];"
+      },
+      "id": "d1e1b139-474a-4f8c-b067-bca686c072b8",
+      "name": "Count Booked Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "4821ebf4-98b2-4b99-be97-bc9f421e66b1",
+      "name": "Respond Check",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bamboo-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b58c718e-d4e4-4f32-8006-c52c30d69d97",
+      "name": "New Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        576
+      ],
+      "webhookId": "0e218995-77f1-4ed9-9f9a-58065f602e41"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst b = body.booking;\n\nreturn [{\n  json: {\n    ID:         b.id,\n    Name:       b.name,\n    Phone:      b.phone,\n    Email:      b.email || '',\n    Date:       b.date,\n    Table:      b.table,\n    Time:       b.time,\n    Guests:     String(b.guests),\n    Status:     b.status || 'confirmed',\n    Source:     b.source || 'online',\n    Notes:      b.notes || '',\n    Created_At: b.created_at || new Date().toISOString(),\n    _email:     b.email || '',\n    _name:      b.name,\n    _id:        b.id,\n    _date:      b.date,\n    _time:      b.time,\n    _guests:    String(b.guests),\n  }\n}];"
+      },
+      "id": "08c3da6b-95d1-455c-b134-ae39f29c29c1",
+      "name": "Extract Booking Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $json.Phone  }}",
+            "Email": "={{ $json.Email  }}",
+            "Name": "={{ $json.Name  }}",
+            "Date": "={{ $json.Date  }}",
+            "Time": "={{ $json.Time  }}",
+            "Guests": "={{ $json.Guests  }}",
+            "Status": "={{ $json.Status  }}",
+            "Source": "={{ $json.Source  }}",
+            "Created_At": "={{ $json.Created_At  }}",
+            "ID": "={{ $json.ID }}",
+            "Notes": "={{ $json.Notes }}",
+            "Table": "={{ $json.Table }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Table",
+              "displayName": "Table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Guests",
+              "displayName": "Guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "4b7d21c8-6547-4ee6-8c5b-8a0b3f89a1fc",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1488,
+        576
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bamboo-cancel",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cb52abc8-5d88-4f52-8cc9-758cba5a3cf3",
+      "name": "Cancel Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        832
+      ],
+      "webhookId": "5077f8e7-b5ef-4bac-abc3-7b7f218b4a03"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "8410291e-d463-436c-80d7-6ef3b3ce0bb1",
+      "name": "Read All for Cancel",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1248,
+        832
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const booking_id = $('Cancel Booking Webhook').first().json.body.booking_id;\nconst rows = $input.all();\n\nlet rowNumber = null;\nfor (let i = 0; i < rows.length; i++) {\n  if (rows[i].json.ID === booking_id) {\n    rowNumber = i + 2;\n    break;\n  }\n}\n\nif (!rowNumber) {\n  throw new Error('Booking not found: ' + booking_id);\n}\n\nreturn [{ json: { rowNumber, booking_id } }];"
+      },
+      "id": "a4d87fee-97fe-41e3-bcc2-0dc48b149a05",
+      "name": "Find Row Number",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "startIndex": "={{ $json.rowNumber }}"
+      },
+      "id": "e602fc3c-c805-495e-83df-fc946929eec5",
+      "name": "Delete Row from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1680,
+        832
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"success\": true}",
+        "options": {}
+      },
+      "id": "b682aaa0-fc7d-40e5-9586-921b23416d12",
+      "name": "Respond Cancel OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Save to Google Sheets').item.json.Email }}",
+        "subject": "Thanks for  Booking. ",
+        "message": "=<!doctype html>\n<html lang=\"bn\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Bamboo Dine — বুকিং কনফার্মেশন</title>\n  </head>\n  <body\n    style=\"\n      margin: 0;\n      padding: 0;\n      background-color: #e8f0d8;\n      font-family: Georgia, &quot;Tiro Bangla&quot;, serif;\n    \"\n  >\n    <table\n      width=\"100%\"\n      cellpadding=\"0\"\n      cellspacing=\"0\"\n      border=\"0\"\n      style=\"background-color: #e8f0d8; padding: 32px 16px\"\n    >\n      <tr>\n        <td align=\"center\">\n          <table\n            width=\"560\"\n            cellpadding=\"0\"\n            cellspacing=\"0\"\n            border=\"0\"\n            style=\"\n              max-width: 560px;\n              width: 100%;\n              background: #ffffff;\n              border-radius: 20px;\n              overflow: hidden;\n              box-shadow: 0 8px 40px rgba(30, 48, 16, 0.18);\n            \"\n          >\n            <!-- ══ HEADER ══ -->\n            <tr>\n              <td\n                style=\"\n                  background: linear-gradient(\n                    160deg,\n                    #1a2e0a 0%,\n                    #2d5010 50%,\n                    #3a6a14 100%\n                  );\n                  padding: 0;\n                  position: relative;\n                  overflow: hidden;\n                \"\n              >\n                <!-- Bamboo stripe texture -->\n                <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                  <tr>\n                    <td\n                      style=\"\n                        padding: 36px 40px 28px;\n                        text-align: center;\n                        position: relative;\n                      \"\n                    >\n                      <!-- Decorative bamboo lines left -->\n                      <div\n                        style=\"\n                          position: absolute;\n                          left: 0;\n                          top: 0;\n                          bottom: 0;\n                          width: 18px;\n                          background: repeating-linear-gradient(\n                            180deg,\n                            rgba(181, 212, 90, 0) 0px,\n                            rgba(181, 212, 90, 0) 28px,\n                            rgba(181, 212, 90, 0.12) 28px,\n                            rgba(181, 212, 90, 0.12) 32px\n                          );\n                        \"\n                      ></div>\n                      <!-- Decorative bamboo lines right -->\n                      <div\n                        style=\"\n                          position: absolute;\n                          right: 0;\n                          top: 0;\n                          bottom: 0;\n                          width: 18px;\n                          background: repeating-linear-gradient(\n                            180deg,\n                            rgba(181, 212, 90, 0) 0px,\n                            rgba(181, 212, 90, 0) 28px,\n                            rgba(181, 212, 90, 0.12) 28px,\n                            rgba(181, 212, 90, 0.12) 32px\n                          );\n                        \"\n                      ></div>\n                      <!-- Logo emoji -->\n                      <div\n                        style=\"\n                          font-size: 52px;\n                          line-height: 1;\n                          margin-bottom: 10px;\n                        \"\n                      >\n                        🎋\n                      </div>\n                      <!-- Brand name -->\n                      <div\n                        style=\"\n                          font-family: Georgia, serif;\n                          font-size: 28px;\n                          font-weight: 700;\n                          color: #ffffff;\n                          letter-spacing: 1px;\n                          margin-bottom: 4px;\n                        \"\n                      >\n                        Bamboo Dine\n                      </div>\n                      <!-- Tagline -->\n                      <div\n                        style=\"\n                          font-size: 13px;\n                          color: rgba(210, 235, 160, 0.75);\n                          letter-spacing: 2px;\n                          font-style: italic;\n                        \"\n                      >\n                        বাঁশের ছায়ায় ঐতিহ্যের স্বাদ\n                      </div>\n                      <!-- Gold divider -->\n                      <div\n                        style=\"\n                          margin: 18px auto 0;\n                          width: 60px;\n                          height: 2px;\n                          background: linear-gradient(\n                            90deg,\n                            transparent,\n                            #c8962a,\n                            transparent\n                          );\n                        \"\n                      ></div>\n                    </td>\n                  </tr>\n                </table>\n              </td>\n            </tr>\n            <!-- ══ GREEN BANNER ══ -->\n            <tr>\n              <td\n                style=\"\n                  background: #4a7a20;\n                  padding: 12px 40px;\n                  text-align: center;\n                \"\n              >\n                <span\n                  style=\"\n                    color: #d6f0a0;\n                    font-size: 14px;\n                    font-weight: bold;\n                    letter-spacing: 0.5px;\n                  \"\n                >\n                  ✅ &nbsp; আপনার টেবিল বুকিং কনফার্ম হয়েছে!\n                </span>\n              </td>\n            </tr>\n            <!-- ══ BODY ══ -->\n            <tr>\n              <td style=\"padding: 36px 40px 28px\">\n                <!-- Greeting -->\n                <p\n                  style=\"\n                    margin: 0 0 6px;\n                    font-size: 17px;\n                    font-weight: bold;\n                    color: #1e3010;\n                  \"\n                >\n                  আসসালামু আলাইকুম,\n                  <span style=\"color: #4a7a20\"\n                    >{{ $('Save to Google Sheets').item.json.Name }}</span\n                  >\n                  স্যার/ম্যাম 🙏\n                </p>\n                <p\n                  style=\"\n                    margin: 0 0 24px;\n                    font-size: 14px;\n                    color: #5a6a40;\n                    line-height: 1.9;\n                  \"\n                >\n                  Bamboo Dine-এ আপনাকে স্বাগত জানাতে পেরে আমরা অত্যন্ত আনন্দিত।\n                  আপনার বুকিং সফলভাবে সম্পন্ন হয়েছে। নিচে বিস্তারিত দেওয়া হলো।\n                </p>\n                <!-- ── BOOKING ID HIGHLIGHT BOX ── -->\n                <table\n                  width=\"100%\"\n                  cellpadding=\"0\"\n                  cellspacing=\"0\"\n                  border=\"0\"\n                  style=\"margin-bottom: 24px\"\n                >\n                  <tr>\n                    <td\n                      style=\"\n                        background: linear-gradient(135deg, #1a2e0a, #3a6414);\n                        border-radius: 14px;\n                        padding: 20px 24px;\n                        text-align: center;\n                      \"\n                    >\n                      <div\n                        style=\"\n                          font-size: 11px;\n                          color: rgba(210, 235, 160, 0.7);\n                          letter-spacing: 2px;\n                          text-transform: uppercase;\n                          margin-bottom: 8px;\n                        \"\n                      >\n                        আপনার বুকিং আইডি\n                      </div>\n                      <div\n                        style=\"\n                          font-family: &quot;Courier New&quot;, monospace;\n                          font-size: 28px;\n                          font-weight: 700;\n                          color: #b5d45a;\n                          letter-spacing: 4px;\n                        \"\n                      >\n                        {{ $('Save to Google Sheets').item.json.ID }}\n                      </div>\n                      <div\n                        style=\"\n                          margin-top: 10px;\n                          font-size: 12px;\n                          color: rgba(210, 235, 160, 0.6);\n                          line-height: 1.7;\n                        \"\n                      >\n                        ⚠️ এই ID টি সংরক্ষণ করুন — পরে প্রয়োজন হতে পারে\n                      </div>\n                    </td>\n                  </tr>\n                </table>\n                <!-- ── BOOKING DETAILS TABLE ── -->\n                <table\n                  width=\"100%\"\n                  cellpadding=\"0\"\n                  cellspacing=\"0\"\n                  border=\"0\"\n                  style=\"\n                    border: 1px solid #b8d490;\n                    border-radius: 12px;\n                    overflow: hidden;\n                    margin-bottom: 24px;\n                  \"\n                >\n                  <!-- Table header -->\n                  <tr>\n                    <td\n                      colspan=\"2\"\n                      style=\"\n                        background: #f0f8e4;\n                        padding: 10px 18px;\n                        font-size: 11px;\n                        font-weight: bold;\n                        color: #4a7a20;\n                        letter-spacing: 1.5px;\n                        text-transform: uppercase;\n                        border-bottom: 1px solid #b8d490;\n                      \"\n                    >\n                      বুকিংয়ের বিবরণ\n                    </td>\n                  </tr>\n                  <!-- Row: Date -->\n                  <tr style=\"border-bottom: 1px solid #e8f2d8\">\n                    <td\n                      style=\"\n                        padding: 13px 18px;\n                        width: 44%;\n                        background: #f7faf2;\n                      \"\n                    >\n                      <span style=\"font-size: 16px\">📅</span>\n                      <span\n                        style=\"\n                          font-size: 13px;\n                          color: #7a8a6a;\n                          margin-left: 6px;\n                        \"\n                        >তারিখ</span\n                      >\n                    </td>\n                    <td\n                      style=\"\n                        padding: 13px 18px;\n                        background: #f7faf2;\n                        border-left: 1px solid #e8f2d8;\n                      \"\n                    >\n                      <strong style=\"font-size: 14px; color: #1e3010\"\n                        >{{ $('Save to Google Sheets').item.json.Date }}</strong\n                      >\n                    </td>\n                  </tr>\n                  <!-- Row: Time -->\n                  <tr style=\"border-bottom: 1px solid #e8f2d8\">\n                    <td style=\"padding: 13px 18px; background: #ffffff\">\n                      <span style=\"font-size: 16px\">🕐</span>\n                      <span\n                        style=\"\n                          font-size: 13px;\n                          color: #7a8a6a;\n                          margin-left: 6px;\n                        \"\n                        >সময়</span\n                      >\n                    </td>\n                    <td\n                      style=\"\n                        padding: 13px 18px;\n                        background: #ffffff;\n                        border-left: 1px solid #e8f2d8;\n                      \"\n                    >\n                      <strong style=\"font-size: 14px; color: #1e3010\"\n                        >{{ $('Save to Google Sheets').item.json.Time }}</strong\n                      >\n                    </td>\n                  </tr>\n                  <!-- Row: Guests -->\n                  <tr style=\"border-bottom: 1px solid #e8f2d8\">\n                    <td style=\"padding: 13px 18px; background: #f7faf2\">\n                      <span style=\"font-size: 16px\">👥</span>\n                      <span\n                        style=\"\n                          font-size: 13px;\n                          color: #7a8a6a;\n                          margin-left: 6px;\n                        \"\n                        >অতিথি সংখ্যা</span\n                      >\n                    </td>\n                    <td\n                      style=\"\n                        padding: 13px 18px;\n                        background: #f7faf2;\n                        border-left: 1px solid #e8f2d8;\n                      \"\n                    >\n                      <strong style=\"font-size: 14px; color: #1e3010\">\n                        {{ $('Save to Google Sheets').item.json.Guests }}\n                        জন</strong\n                      >\n                    </td>\n                  </tr>\n                  <!-- Row: Phone -->\n                  <tr>\n                    <td style=\"padding: 13px 18px; background: #ffffff\">\n                      <span style=\"font-size: 16px\">📞</span>\n                      <span\n                        style=\"\n                          font-size: 13px;\n                          color: #7a8a6a;\n                          margin-left: 6px;\n                        \"\n                        >ফোন</span\n                      >\n                    </td>\n                    <td\n                      style=\"\n                        padding: 13px 18px;\n                        background: #ffffff;\n                        border-left: 1px solid #e8f2d8;\n                      \"\n                    >\n                      <strong style=\"font-size: 14px; color: #1e3010\"\n                        >{{ $('Save to Google Sheets').item.json.Phone\n                        }}</strong\n                      >\n                    </td>\n                  </tr>\n                </table>\n                <!-- ── CANCEL INSTRUCTIONS BOX ── -->\n                <table\n                  width=\"100%\"\n                  cellpadding=\"0\"\n                  cellspacing=\"0\"\n                  border=\"0\"\n                  style=\"margin-bottom: 24px\"\n                >\n                  <tr>\n                    <td\n                      style=\"\n                        background: #fff9e6;\n                        border: 1px solid #f0d080;\n                        border-radius: 12px;\n                        padding: 18px 20px;\n                      \"\n                    >\n                      <div\n                        style=\"\n                          font-size: 13px;\n                          font-weight: bold;\n                          color: #8a6000;\n                          margin-bottom: 8px;\n                        \"\n                      >\n                        🔖 বুকিং বাতিল করতে চাইলে\n                      </div>\n                      <div\n                        style=\"\n                          font-size: 13px;\n                          color: #6a5000;\n                          line-height: 1.9;\n                        \"\n                      >\n                        আমাদের ওয়েবসাইটের chatbot-এ গিয়ে নিচের মেসেজটি\n                        পাঠান:<br />\n                        <div\n                          style=\"\n                            margin: 10px 0;\n                            background: #fff3c0;\n                            border-radius: 8px;\n                            padding: 10px 14px;\n                            font-family: &quot;Courier New&quot;, monospace;\n                            font-size: 14px;\n                            color: #5a4000;\n                            letter-spacing: 1px;\n                            border-left: 3px solid #c8962a;\n                          \"\n                        >\n                          আমার বুকিং বাতিল করতে চাই\n                        </div>\n                        Bot আপনাকে confirm করতে বলবে, তারপর আপনার বুকিং বাতিল হয়ে\n                        যাবে।\n                      </div>\n                    </td>\n                  </tr>\n                </table>\n                <!-- ── THANK YOU NOTE ── -->\n                <table\n                  width=\"100%\"\n                  cellpadding=\"0\"\n                  cellspacing=\"0\"\n                  border=\"0\"\n                  style=\"margin-bottom: 8px\"\n                >\n                  <tr>\n                    <td\n                      style=\"\n                        background: #f0f8e4;\n                        border-radius: 12px;\n                        padding: 18px 22px;\n                        text-align: center;\n                      \"\n                    >\n                      <div style=\"font-size: 22px; margin-bottom: 8px\">🙏</div>\n                      <div\n                        style=\"\n                          font-size: 14px;\n                          color: #3a5010;\n                          line-height: 1.9;\n                          font-weight: bold;\n                        \"\n                      >\n                        আপনার বিশ্বাস ও ভালোবাসার জন্য আন্তরিক ধন্যবাদ!\n                      </div>\n                      <div\n                        style=\"\n                          font-size: 13px;\n                          color: #5a7030;\n                          line-height: 1.9;\n                          margin-top: 6px;\n                        \"\n                      >\n                        আমরা আপনাকে সেরা অভিজ্ঞতা দিতে প্রতিশ্রুতিবদ্ধ।<br />\n                        অনুগ্রহ করে নির্ধারিত সময়ের <strong>১৫ মিনিট আগে</strong> আসার চেষ্টা করবেন!\n                      </div>\n                    </td>\n                  </tr>\n                </table>\n              </td>\n            </tr>\n            <!-- ══ FOOTER ══ -->\n            <tr>\n              <td style=\"background: #1a2e0a; padding: 22px 40px\">\n                <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                  <tr>\n                    <td style=\"text-align: center\">\n                      <div style=\"font-size: 22px; margin-bottom: 8px\">🎋</div>\n                      <div\n                        style=\"\n                          font-size: 13px;\n                          font-weight: bold;\n                          color: #b5d45a;\n                          letter-spacing: 0.5px;\n                          margin-bottom: 10px;\n                        \"\n                      >\n                        Bamboo Dine\n                      </div>\n                      <!-- Contact info -->\n                      <div\n                        style=\"\n                          font-size: 12px;\n                          color: rgba(210, 235, 160, 0.55);\n                          line-height: 2;\n                        \"\n                      >\n                        📍 ধানমন্ডি ২৭, ঢাকা-১২০৫ &nbsp;·&nbsp; 📞 01700-000000\n                        &nbsp;·&nbsp; ✉️ info@bamboodine.com\n                      </div>\n                      <!-- Divider -->\n                      <div\n                        style=\"\n                          margin: 14px auto;\n                          width: 80px;\n                          height: 1px;\n                          background: rgba(181, 212, 90, 0.2);\n                        \"\n                      ></div>\n                      <div\n                        style=\"font-size: 11px; color: rgba(255, 255, 255, 0.2)\"\n                      >\n                        এই ইমেইলটি স্বয়ংক্রিয়ভাবে পাঠানো হয়েছে। সরাসরি reply\n                        করবেন না।\n                      </div>\n                    </td>\n                  </tr>\n                </table>\n              </td>\n            </tr>\n          </table>\n          <!-- End main table -->\n        </td>\n      </tr>\n    </table>\n  </body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        576
+      ],
+      "id": "c0a2459c-3843-4c6c-9fa1-e8804fbba748",
+      "name": "Send a message",
+      "webhookId": "3ccb1b19-37b2-4df1-a35e-9726fe19b3a7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Y6JQL0D1RdliHuXk",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bamboo-check",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a3186898-e698-4f74-ad3c-1cd49ca0a063",
+      "name": "Check Availability Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        304
+      ],
+      "webhookId": "5eca2156-6b39-48eb-a5ba-6b64efd757ff"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "398b6cb5-cd35-4d41-b5f5-d99e8127dc07",
+      "name": "Respond List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('List Bookings Webhook').first().json.body || {};\nconst filterDate   = (req.date   || '').trim();\nconst filterSearch = (req.search || '').trim().toLowerCase();\nconst filterStatus = (req.status || 'all').trim();\n\nconst rows = $input.all();\n\nlet bookings = rows\n  .filter(r => r.json && r.json.ID)\n  .map(r => ({\n    id:         r.json.ID         || '',\n    name:       r.json.Name       || '',\n    phone:      r.json.Phone      || '',\n    email:      r.json.Email      || '',\n    date:       r.json.Date       || '',\n    time:       r.json.Time       || '',\n    guests:     r.json.Guests     || '',\n    status:     r.json.Status     || 'confirmed',\n    source:     r.json.Source     || 'online',\n    notes:      r.json.Notes      || '',\n    created_at: r.json.Created_At || '',\n  }));\n\nif (filterDate)             bookings = bookings.filter(b => b.date === filterDate);\nif (filterStatus !== 'all') bookings = bookings.filter(b => b.status === filterStatus);\nif (filterSearch)           bookings = bookings.filter(b =>\n  b.name.toLowerCase().includes(filterSearch) ||\n  b.phone.includes(filterSearch) ||\n  b.id.toLowerCase().includes(filterSearch)\n);\n\nbookings.sort((a, b) => b.created_at.localeCompare(a.created_at));\n\nreturn [{ json: { bookings, total: bookings.length } }];"
+      },
+      "id": "644ef37a-0f22-4b63-9680-d1e850100333",
+      "name": "Filter and Format List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "2adf4575-32c1-49a7-9915-8a6e7ee6268f",
+      "name": "Read All Bookings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1248,
+        1088
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bamboo-list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e84428fa-dc91-4af9-8b8f-6e231fd7f6ec",
+      "name": "List Bookings Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        1088
+      ],
+      "webhookId": "0403ceac-0a5c-49b6-a306-a70b19a5b93a"
+    },
+    {
+      "parameters": {
+        "content": "# Table Availability Check",
+        "height": 272,
+        "width": 896,
+        "color": "#0D2A09"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "8ace936d-9553-4837-97c9-7358dfe8158a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# New Booking",
+        "height": 256,
+        "width": 1328,
+        "color": "#030B30"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        496
+      ],
+      "typeVersion": 1,
+      "id": "ff7ad052-0feb-43e3-a0de-317eac8a577b",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Cancle Booking",
+        "height": 224,
+        "width": 1328,
+        "color": "#420000"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        768
+      ],
+      "typeVersion": 1,
+      "id": "3c742ab7-98bd-4d5a-b2bc-480abb722093",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Get Booking Lists",
+        "height": 256,
+        "width": 976
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        1008
+      ],
+      "typeVersion": 1,
+      "id": "a5d097c4-fe3b-4861-a535-b47dfebe1ef2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 348085080,
+          "mode": "list",
+          "cachedResultName": "Availability",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=348085080"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "=0",
+            "T-1": "= {{ $json.Table == \"T-1\" ? 1 : undefined }}",
+            "T-2": "= {{ $json.Table == \"T-2\" ? 1 : undefined }}",
+            "T-3": "= {{ $json.Table == \"T-3\" ? 1 : undefined }}",
+            "T-6": "= {{ $json.Table == \"T-6\" ? 1 : undefined }}",
+            "T-5": "= {{ $json.Table == \"T-5\" ? 1 : undefined }}",
+            "T-4": "= {{ $json.Table == \"T-4\" ? 1 : undefined }}",
+            "Slot": "={{ $json.Time }}"
+          },
+          "matchingColumns": [
+            "Slot"
+          ],
+          "schema": [
+            {
+              "id": "Slot",
+              "displayName": "Slot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-1",
+              "displayName": "T-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-2",
+              "displayName": "T-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-3",
+              "displayName": "T-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-4",
+              "displayName": "T-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-5",
+              "displayName": "T-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-6",
+              "displayName": "T-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booked",
+              "displayName": "Booked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Free",
+              "displayName": "Free",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1696,
+        576
+      ],
+      "id": "b9f935aa-e431-448a-881d-016bdec9b69a",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 348085080,
+          "mode": "list",
+          "cachedResultName": "Availability",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=348085080"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "=0",
+            "T-1": "= {{  $('Read All for Cancel').item.json.Table == \"T-1\" ? 0 : undefined }}",
+            "T-2": "= {{  $('Read All for Cancel').item.json.Table == \"T-2\" ? 0 : undefined }}",
+            "T-3": "= {{  $('Read All for Cancel').item.json.Table == \"T-3\" ? 0 : undefined }}",
+            "T-6": "= {{  $('Read All for Cancel').item.json.Table == \"T-6\" ? 0 : undefined }}",
+            "T-5": "= {{  $('Read All for Cancel').item.json.Table == \"T-5\" ? 0 : undefined }}",
+            "T-4": "= {{  $('Read All for Cancel').item.json.Table == \"T-4\" ? 0 : undefined }}",
+            "Slot": "={{ $('Read All for Cancel').item.json.Time }}"
+          },
+          "matchingColumns": [
+            "Slot"
+          ],
+          "schema": [
+            {
+              "id": "Slot",
+              "displayName": "Slot",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-1",
+              "displayName": "T-1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-2",
+              "displayName": "T-2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-3",
+              "displayName": "T-3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-4",
+              "displayName": "T-4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-5",
+              "displayName": "T-5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "T-6",
+              "displayName": "T-6",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Booked",
+              "displayName": "Booked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Free",
+              "displayName": "Free",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        832
+      ],
+      "id": "8dd29b9e-cf8d-456e-b34f-5cf2e152f525",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bamboo-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8195cb9d-e14e-444e-9d7d-b38864882d4b",
+      "name": "Update Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        976,
+        1360
+      ],
+      "webhookId": "c925bbb6-b8bd-45db-9611-4522e0dbeadb"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "a656ebd0-2bf6-46bd-9526-01e196b329ff",
+      "name": "Read Sheet for Update",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        1360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const req  = $('Update Booking Webhook').first().json.body;\nconst bid  = req.booking_id || '';\nconst rows = $input.all();\n\n// booking_id দিয়ে row খুঁজি (1-indexed, row 1 = header)\nlet rowIndex = -1;\nfor(let i = 0; i < rows.length; i++){\n  if(rows[i].json.ID === bid){\n    rowIndex = i + 2; // +2: row 1 header, i 0-indexed\n    break;\n  }\n}\n\nif(rowIndex === -1){\n  return [{ json: { success: false, error: `Booking ${bid} not found`, rowIndex: -1 } }];\n}\n\nconst existing = rows[rowIndex - 2].json;\n\n// Only update provided fields — বাকিগুলো existing value রাখো\nconst updated = {\n  ID:         existing.ID,\n  Name:       req.name    !== undefined ? req.name    : existing.Name,\n  Phone:      req.phone   !== undefined ? req.phone   : existing.Phone,\n  Email:      req.email   !== undefined ? req.email   : existing.Email,\n  Date:       req.date    !== undefined ? req.date    : existing.Date,\n  Time:       req.time    !== undefined ? req.time    : existing.Time,\n  Table:      req.table   !== undefined ? req.table   : existing.Table,\n  Guests:     req.guests  !== undefined ? String(req.guests) : existing.Guests,\n  Status:     req.status  !== undefined ? req.status  : existing.Status,\n  Source:     existing.Source,\n  Notes:      req.notes   !== undefined ? req.notes   : existing.Notes,\n  Created_At: existing.Created_At,\n};\n\nreturn [{ json: { ...updated, _rowIndex: rowIndex, success: true } }];"
+      },
+      "id": "bf93b765-aef2-4df4-8d2b-a28ba7b4a236",
+      "name": "Find and Update Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ",
+          "mode": "list",
+          "cachedResultName": "Bamboo Dine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bookings",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1uSmYd4Yzmu1Hx1DZjc6RGEIYrqsMFAZ11HxGNx6-ljQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.ID }}",
+            "Name": "={{ $json.Name }}",
+            "Phone": "={{ $json.Phone }}",
+            "Email": "={{ $json.Email }}",
+            "Date": "={{ $json.Date }}",
+            "Time": "={{ $json.Time }}",
+            "Table": "={{ $json.Table }}",
+            "Guests": "={{ $json.Guests }}",
+            "Status": "={{ $json.Status }}",
+            "Source": "={{ $json.Source }}",
+            "Notes": "={{ $json.Notes }}",
+            "Created_At": "={{ $json.Created_At }}",
+            "row_number": 0
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Table",
+              "displayName": "Table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Guests",
+              "displayName": "Guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ca9c8d65-40fc-4a48-b128-7321cc72baa1",
+      "name": "Write Updated Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1648,
+        1360
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7aq1iLN7h57klZOU",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\":true,\"booking_id\":\"{{ $(\"Update Booking Webhook\").first().json.body.booking_id }}\"}",
+        "options": {}
+      },
+      "id": "93d3a6de-cf39-4c04-abde-1930a8691a41",
+      "name": "Respond Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# Update Information",
+        "height": 240,
+        "width": 1088,
+        "color": "#002B3D"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        960,
+        1296
+      ],
+      "typeVersion": 1,
+      "id": "8bfc5521-87e0-4b9c-918d-b7572dd41db5",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read Slots from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Count Booked Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Booked Slots": {
+      "main": [
+        [
+          {
+            "node": "Respond Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read All for Cancel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All for Cancel": {
+      "main": [
+        [
+          {
+            "node": "Find Row Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Row Number": {
+      "main": [
+        [
+          {
+            "node": "Delete Row from Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Row from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond Booking OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Slots from Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter and Format List": {
+      "main": [
+        [
+          {
+            "node": "Respond List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Bookings": {
+      "main": [
+        [
+          {
+            "node": "Filter and Format List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Bookings Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read All Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Booking OK": {
+      "main": [
+        []
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Respond Cancel OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Sheet for Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Sheet for Update": {
+      "main": [
+        [
+          {
+            "node": "Find and Update Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find and Update Row": {
+      "main": [
+        [
+          {
+            "node": "Write Updated Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Updated Row": {
+      "main": [
+        [
+          {
+            "node": "Respond Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "213c3f86-7e76-42dd-8a8e-d39ab084e2f5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1cf9b1bc467d605f97326bf678b2791a2ec92aff9a6b19fb5cb12fc6dc13b459"
+  },
+  "id": "w5SCTILuHuIXve5l",
+  "tags": []
+}
